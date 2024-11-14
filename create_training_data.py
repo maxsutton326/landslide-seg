@@ -22,52 +22,6 @@ from sklearn.preprocessing import OneHotEncoder
 import sys
 
 scratch_dir = os.getenv("GROUP_SCRATCH")
-num_land_categories = 11
-
-
-def read_image_stack_land_use(image_paths, land_use_path):
-    # Read satellite images and stack them into a 3D array
-    # image_paths: list of paths to satellite images sorted by time
-    with rasterio.open(image_paths[0]) as src:
-        rows, cols = src.shape
-        time_bands = len(image_paths)
-        image_bands = src.count - 1
-        image_stack = np.zeros(
-            (time_bands, rows, cols, image_bands + num_land_categories),
-            dtype=np.float16,
-        )
-        transform = src.transform
-        crs = src.crs
-
-    with rasterio.open(land_use_path) as src:
-        enc = OneHotEncoder(handle_unknown="ignore")
-        land_use_array = reshape_as_image(
-            src.read(
-                out_shape=(rows, cols),
-                resampling=Resampling.bilinear,
-            )
-        ).astype(np.uint8)
-        enc.fit(np.arange(num_land_categories).reshape(-1, 1))
-        land_use_array_enc = enc.transform(land_use_array.reshape(-1, 1)).toarray()
-        print(np.count_nonzero(land_use_array_enc))
-        land_use_array = np.reshape(
-            land_use_array_enc,
-            (land_use_array.shape[0], land_use_array.shape[1], num_land_categories),
-        )
-
-    for i, image_path in enumerate(image_paths):
-        with rasterio.open(image_path) as src:
-            # remove alpha band as this does not contain any info for us
-            image_stack[i, ..., :image_bands] = reshape_as_image(src.read())[..., :-1]
-            # remove alpha band as this does not contain any info for us
-            image_stack[i, ..., :image_bands] = (
-                image_stack[i, ..., :image_bands] / 255.0
-            )
-            image_stack[i, ..., image_bands:] = land_use_array
-
-    print(f"Read image stack, shape {image_stack.shape}")
-    np.save(f"{os.path.dirname(path)}/images_lu.npy", image_stack)
-    return image_stack, transform, crs
 
 
 def read_image_stack(image_paths):
@@ -87,9 +41,6 @@ def read_image_stack(image_paths):
     for i, image_path in enumerate(image_paths):
         with rasterio.open(image_path) as src:
             image_stack[i] = reshape_as_image(src.read())
-
-    # remove alpha band as this does not contain any info for us
-    image_stack = image_stack[..., :-1] / 255.0
 
     print(f"Read image stack, shape {image_stack.shape}")
     np.save(f"{os.path.dirname(path)}/images.npy", image_stack)
@@ -221,14 +172,7 @@ if __name__ == "__main__":
             image_dates.append(image_date)
 
     # Read and preprocess the data
-    image_stack, image_transform, image_crs = read_image_stack_land_use(
-        image_paths,
-        os.path.join(
-            os.path.dirname(path),
-            f"land_use_{base_name}.tif",
-        ),
-    )
-    # image_stack, image_transform, image_crs = read_image_stack(image_paths)
+    image_stack, image_transform, image_crs = read_image_stack(image_paths)
 
     # Define parameters
     patches = (4, 128, 128)  # Size of the patches (width, height)

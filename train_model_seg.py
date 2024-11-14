@@ -73,18 +73,15 @@ if __name__ == "__main__":
     print(args)
     # Load the stack of images
     image_stack, ground_truth_mask, locations = load_data_slices(args.data, suffix="")
-    image_stack = [
-        image_stack[i].astype(np.float16) / 255.0 for i in range(len(image_stack))
-    ]
     loc_train, loc_val, loc_test = training_validation_split(
         locations, proportion=args.training_proportion
     )
+
+    # Normalize by size of dataset, when training with multiple landslide inventories
     num_inventories = np.max(loc_train[:, 0]) + 1
     data_lengths = np.array(
         [len(loc_train[loc_train[:, 0] == i]) for i in range(num_inventories)]
     )
-
-    # Normalize by size of dataset, when training with multiple landslide inventories
     smallest_inventory = int(np.sort(data_lengths)[0])
     loc_train, _ = positive_negative_split(
         loc_train,

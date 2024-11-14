@@ -206,6 +206,10 @@ def load_data_slices(paths, suffix="", get_weights=False):
                 dataset_lengths.append(len(intermediate_data))
                 full_data[file].extend(intermediate_data)
             else:
+                if j == 0:  # images
+                    # Normalize RGBA bands (but not any additional one hot encoding)
+                    intermediate_data = intermediate_data.astype(np.float16)
+                    intermediate_data[:4] = intermediate_data[:4] / 255.0
                 full_data[file].append(intermediate_data)
     full_data = [full_data[key] for key in data_files]
     full_data[location_index] = np.asanyarray(full_data[location_index])
@@ -318,8 +322,6 @@ class DataGenerator(tf.keras.utils.Sequence):
             )
             slices.append(np.where(slices[1] > 0, 0.95, 0.05))
             slices[2] = np.expand_dims(slices[2], 2)
-            if index == 0:
-                print(np.count_nonzero(slices[1]))
         return slices
 
     def __len__(self):

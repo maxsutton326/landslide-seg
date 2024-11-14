@@ -72,7 +72,7 @@ def plot_metrics_curves(
 #   predictions: numpy array of predicted labels of tiles
 #   patch_labels: numpy array with ground truth labels of tiles
 def get_predictions_from_locations(
-    model, locations, images, labels, batch_size, buffer_ratio=1, segmentation=True
+    model, locations, images, labels, batch_size, buffer_ratio=1
 ):
     tile_size = (
         int(locations[0][2] - locations[0][1]),
@@ -81,8 +81,7 @@ def get_predictions_from_locations(
     )
     stride_size = int(tile_size[1] / buffer_ratio) if buffer_ratio != 1 else 0
     y_pred_probs, patch_labels = (
-        np.zeros((len(locations), *(tile_size if segmentation else (tile_size[0],))))
-        for array in (images, labels)
+        np.zeros((len(locations), *tile_size)) for array in (images, labels)
     )
 
     reset_memory()
@@ -97,35 +96,27 @@ def get_predictions_from_locations(
 
     for i in range(total):
         batch = dataset.__getitem__(i)
-        patch_labels[i : i + batch_size] = (
-            batch[1]
-            if not segmentation
-            else batch[1][
-                :,  # batch samples
-                :,  # time slices
-                stride_size : (
-                    -stride_size if buffer_ratio != 1 else tile_size[1]
-                ),  # length
-                stride_size : (
-                    -stride_size if buffer_ratio != 1 else tile_size[2]
-                ),  # width
-            ]
-        )
+        patch_labels[i : i + batch_size] = batch[1][
+            :,  # batch samples
+            :,  # time slices
+            stride_size : (
+                -stride_size if buffer_ratio != 1 else tile_size[1]
+            ),  # length
+            stride_size : (
+                -stride_size if buffer_ratio != 1 else tile_size[2]
+            ),  # width
+        ]
         predictions = model(batch[0], training=False)
-        y_pred_probs[i : i + batch_size] = (
-            predictions
-            if not segmentation
-            else predictions[
-                :,
-                :,
-                stride_size : (
-                    -stride_size if buffer_ratio != 1 else tile_size[1]
-                ),  # length,
-                stride_size : (
-                    -stride_size if buffer_ratio != 1 else tile_size[1]
-                ),  # width,
-            ]
-        )
+        y_pred_probs[i : i + batch_size] = predictions[
+            :,
+            :,
+            stride_size : (
+                -stride_size if buffer_ratio != 1 else tile_size[1]
+            ),  # length,
+            stride_size : (
+                -stride_size if buffer_ratio != 1 else tile_size[1]
+            ),  # width,
+        ]
         # There must necessarily be 0 landslide chance in the first image in the
         # stack, since there is no "before" reference image
         y_pred_probs[i : i + batch_size, 0] = np.zeros_like(

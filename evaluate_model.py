@@ -11,7 +11,6 @@ from utils.evaluation_utils import (
     get_predictions_from_locations,
     get_total_predictions,
     generate_prediction_maps,
-    get_prediction_extremes,
 )
 
 
@@ -54,6 +53,8 @@ if __name__ == "__main__":
     image_stack, ground_truth_mask, locs = load_data_slices(
         [path],
     )
+    # Since the satellite images are not rectangles, there are some locations that
+    # without RGBA data. We exclude those locations.
     mask = get_empty_sample_mask(locs, image_stack)
     loc_total = locs[mask != 0]
     if args.should_generate_map:
