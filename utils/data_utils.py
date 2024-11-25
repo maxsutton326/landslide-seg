@@ -187,8 +187,8 @@ def training_validation_split(locations, proportion=0.5):
 # arg suffix: suffix to add onto standard file names
 # arg get_weights: whether to calculate sample weights based on the size of each dataset
 def load_data_slices(paths, suffix="", get_weights=False):
-    locations_file = f"patches_loc"
-    data_files = [f"images{suffix}", "labels", locations_file]
+    locations_file = f"patches_loc{suffix}"
+    data_files = [f"images", "labels", locations_file]
     location_index = data_files.index(locations_file)
     num_data_files = len(data_files)
     full_data = {data: [] for data in data_files}
@@ -329,22 +329,16 @@ class DataGenerator(tf.keras.utils.Sequence):
 
 
 def get_empty_sample_mask(locations, array):
-    location_stats = np.zeros(len(locations))
+    location_stats = np.zeros(len(locations), dtype=np.uint8)
     squashed = []
 
     for i in range(len(array)):
         array_to_squash = array[i]
 
-        def get_squashed_array(*index):
-            return np.count_nonzero(
-                np.asanyarray(array_to_squash)[index], axis=len(index)
-            )
+        def get_squashed_array():
+            return np.count_nonzero(np.asanyarray(array_to_squash), axis=-1)
 
-        squashed.append(
-            np.fromfunction(
-                get_squashed_array, np.asanyarray(array[0]).shape[:-1], dtype=int
-            )
-        )
+        squashed.append(np.count_nonzero(np.asanyarray(array_to_squash), axis=-1))
     pixels_per_patch = (
         (locations[0][2] - locations[0][1])
         * (locations[0][4] - locations[0][3])

@@ -50,9 +50,7 @@ if __name__ == "__main__":
     # Generate predictions on the validation data
     print("Predicting...", flush=True)
     batch_size = 8
-    image_stack, ground_truth_mask, locs = load_data_slices(
-        [path],
-    )
+    image_stack, ground_truth_mask, locs = load_data_slices([path], suffix="_128")
     # Since the satellite images are not rectangles, there are some locations that
     # without RGBA data. We exclude those locations.
     mask = get_empty_sample_mask(locs, image_stack)
@@ -71,7 +69,7 @@ if __name__ == "__main__":
             loc_total,
             ground_truth_mask,
             y_pred_probs,
-            buffer_ratio=1,
+            buffer_ratio=2,
         )
         exit(0)
     else:

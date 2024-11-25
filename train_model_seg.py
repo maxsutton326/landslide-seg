@@ -9,9 +9,10 @@ from utils.data_utils import (
     DataGenerator,
     training_validation_split,
     random_samples,
+    get_empty_sample_mask,
 )
 import tensorflow as tf
-from utils.model import get_unet
+from utils.model import get_unet_5, get_unet_7, get_unet_9
 
 
 def get_args():
@@ -61,6 +62,12 @@ def get_args():
         type=float,
         help="What fraction of the dataset to use for training, default=0.5",
     )
+    parser.add_argument(
+        "--tile-size",
+        default=128,
+        type=int,
+        help="How big are the tiles to use for training",
+    )
     return parser.parse_args()
 
 
@@ -72,17 +79,15 @@ if __name__ == "__main__":
     model_path = f"{args.name}.keras"
     print(args)
     # Load the stack of images
-    image_stack, ground_truth_mask, locations = load_data_slices(args.data, suffix="")
+    image_stack, ground_truth_mask, locations = load_data_slices(
+        args.data, suffix=f"_{args.tile_size}"
+    )
     loc_train, loc_val, loc_test = training_validation_split(
         locations, proportion=args.training_proportion
     )
 
     # Normalize by size of dataset, when training with multiple landslide inventories
     num_inventories = np.max(loc_train[:, 0]) + 1
-    data_lengths = np.array(
-        [len(loc_train[loc_train[:, 0] == i]) for i in range(num_inventories)]
-    )
-    smallest_inventory = int(np.sort(data_lengths)[0])
     loc_train, _ = positive_negative_split(
         loc_train,
         np.asanyarray(
@@ -93,17 +98,6 @@ if __name__ == "__main__":
         ),
         proportion_n=args.neg_split,
         proportion_p=args.pos_split,
-    )
-    loc_test = np.concatenate(
-        [
-            np.array(
-                random_samples(
-                    loc_test[loc_test[:, 0] == i],
-                    num_samples=smallest_inventory,
-                )
-            )[0]
-            for i in range(num_inventories)
-        ]
     )
     print(f"num validation points: {len(loc_test)}")
 
@@ -121,7 +115,7 @@ if __name__ == "__main__":
                 int(loc_train[0][6] - loc_train[0][5]),
                 *np.asanyarray(image_stack[0]).shape[3:],
             )
-            model = get_unet(input_shape=sample_shape)
+            model = get_unet_9(input_shape=sample_shape)
 
         # Compile the model
         model.compile(

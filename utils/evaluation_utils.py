@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import PIL.Image
 from sklearn.metrics import precision_recall_curve, auc
+import tensorflow as tf
 from utils.data_utils import reset_memory, DataGenerator, get_slice
 import os
 import rasterio
@@ -107,16 +108,18 @@ def get_predictions_from_locations(
             ),  # width
         ]
         predictions = model(batch[0], training=False)
-        y_pred_probs[i : i + batch_size] = predictions[
-            :,
-            :,
-            stride_size : (
-                -stride_size if buffer_ratio != 1 else tile_size[1]
-            ),  # length,
-            stride_size : (
-                -stride_size if buffer_ratio != 1 else tile_size[1]
-            ),  # width,
-        ]
+        y_pred_probs[i : i + batch_size] = tf.squeeze(
+            predictions[
+                :,
+                :,
+                stride_size : (
+                    -stride_size if buffer_ratio != 1 else tile_size[1]
+                ),  # length,
+                stride_size : (
+                    -stride_size if buffer_ratio != 1 else tile_size[1]
+                ),  # width,
+            ]
+        )
         # There must necessarily be 0 landslide chance in the first image in the
         # stack, since there is no "before" reference image
         y_pred_probs[i : i + batch_size, 0] = np.zeros_like(
@@ -139,11 +142,13 @@ def get_total_predictions(model, locations, images, labels, batch_size):
     )
     total = len(locations) - batch_size
     for i in range(0, total, batch_size):
-        y_pred_probs[i : i + batch_size] = model(
-            np.asanyarray(
-                [get_slice(images, locations[j]) for j in range(i, i + batch_size)]
-            ),
-            training=False,
+        y_pred_probs[i : i + batch_size] = tf.squeeze(
+            model(
+                np.asanyarray(
+                    [get_slice(images, locations[j]) for j in range(i, i + batch_size)]
+                ),
+                training=False,
+            )
         )
         if i % 100 == 0:
             print(f"{i} batch of {total} complete", flush=True)
@@ -204,9 +209,7 @@ def generate_prediction_maps(
             patch_loc[i][1] : patch_loc[i][2],
             patch_loc[i][3] + stride_length : patch_loc[i][4] - stride_length,
             patch_loc[i][5] + stride_length : patch_loc[i][6] - stride_length,
-        ] = y_pred_probs[i]
-    predictions = np.expand_dims(np.sum(predictions, axis=(0)), 0)
-    num_images = 1
+        ] = tf.squeeze(y_pred_probs[i])
     for i in range(num_images):
         predicted = predictions[i]
         plt.imsave(

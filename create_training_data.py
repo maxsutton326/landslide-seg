@@ -143,7 +143,7 @@ def create_patch_list(
                             xindex.stop,
                         ]
                     )
-    save_patches(patch_loc, file_suffix="_loc")
+    save_patches(patch_loc, file_suffix="_loc_384")
 
 
 # Command line arguments:
@@ -175,8 +175,8 @@ if __name__ == "__main__":
     image_stack, image_transform, image_crs = read_image_stack(image_paths)
 
     # Define parameters
-    patches = (4, 128, 128)  # Size of the patches (width, height)
-    stride = (1, 64, 64)  # Stride between consecutive patches (width, height)
+    patches = (10, 384, 384)  # Size of the patches (width, height)
+    stride = (1, 128, 128)  # Stride between consecutive patches (width, height)
 
     # Create patches for input data
     create_patch_list(
@@ -205,10 +205,10 @@ if __name__ == "__main__":
             polygon_data = pd.concat([polygon_data, data])
 
     # Create labels
-    labels = create_ground_truth_mask(
-        image_stack, image_dates, polygon_data, image_transform
-    ).astype(np.int8)
-    np.save(f"{os.path.dirname(path)}/labels.npy", labels)
+    # labels = create_ground_truth_mask(
+    #     image_stack, image_dates, polygon_data, image_transform
+    # ).astype(np.int8)
+    # np.save(f"{os.path.dirname(path)}/labels.npy", labels)
 
-    # Create patches for labels
-    print(f"Created ground truth mask, shape {labels.shape}")
+    # # Create patches for labels
+    # print(f"Created ground truth mask, shape {labels.shape}")
