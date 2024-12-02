@@ -68,6 +68,12 @@ def get_args():
         type=int,
         help="How big are the tiles to use for training",
     )
+    parser.add_argument(
+        "--model-width",
+        default=128,
+        type=int,
+        help="How many filters are in the deepest layer of the u net",
+    )
     return parser.parse_args()
 
 
@@ -115,7 +121,7 @@ if __name__ == "__main__":
                 int(loc_train[0][6] - loc_train[0][5]),
                 *np.asanyarray(image_stack[0]).shape[3:],
             )
-            model = get_unet_9(input_shape=sample_shape)
+            model = get_unet_7(input_shape=sample_shape, max_filters=args.model_width)
 
         # Compile the model
         model.compile(
@@ -172,7 +178,7 @@ if __name__ == "__main__":
         steps_per_epoch=num_train,
         epochs=args.epochs,
         validation_data=DataGenerator(
-            loc_test,
+            loc_val,
             image_stack,
             ground_truth_mask,
             batch_size=BATCH_SIZE,

@@ -29,9 +29,7 @@ def transform_to_image(array):
 # arg predictions: numpy array of predicted labels of tiles
 # arg file_path: file path to save images to
 # arg dataset_name: name associated with dataset, used for titling image and file path
-def plot_metrics_curves(
-    labels, predictions, file_path="", dataset_name="", compute_roc=False
-):
+def plot_metrics_curves(labels, predictions, file_path="", dataset_name=""):
     labels = labels.flatten()
     predictions = predictions.flatten()
     # Compute precision and recall
@@ -120,14 +118,12 @@ def get_predictions_from_locations(
                 ),  # width,
             ]
         )
-        # There must necessarily be 0 landslide chance in the first image in the
-        # stack, since there is no "before" reference image
-        y_pred_probs[i : i + batch_size, 0] = np.zeros_like(
-            y_pred_probs[i : i + batch_size, 0]
-        )
         reset_memory()
         if i % 100 == 0:
             print(f"{i} batch of {total} complete", flush=True)
+    # There must necessarily be 0 landslide chance in the first image in the
+    # stack, since there is no "before" reference image
+    y_pred_probs[:, 0] = np.zeros_like(y_pred_probs[:, 0])
     return y_pred_probs, patch_labels
 
 
